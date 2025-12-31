@@ -1,0 +1,23 @@
+# Azure AI Foundry Evaluation SDK
+azure-ai-evaluation>=1.0.0
+azure-ai-projects==1.0.0
+azure-identity==1.25.1
+
+# OpenAI SDK
+openai==2.14.0
+
+# Promptflow for Prompty-based evaluators
+promptflow>=1.15.0
+promptflow-core>=1.15.0
+
+# Jupyter Notebook
+jupyter==1.1.1
+notebook==7.5.1
+ipython>=8.0.0
+
+# Data processing and visualization
+pandas==2.3.3
+numpy>=1.24.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+openpyxl==3.1.5
