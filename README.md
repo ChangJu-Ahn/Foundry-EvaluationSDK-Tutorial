@@ -35,19 +35,120 @@ Azure AI Foundry의 Evaluation SDK를 활용하여 LLM 기반 애플리케이션
 
 ---
 
+## �️ 전체 커리큘럼 한눈에
+
+각 노트북이 어떤 질문에 답하고, 어떤 evaluator를 다루며, 끝나면 무엇을 할 수 있게 되는지를 한 페이지로 정리한 표입니다. 자세한 학습 목표는 각 노트북 최상단의 “🎯 이 랩에서 무엇을 얻어가는가” 섹션을 참고하세요.
+
+| # | 노트북 | 한 줄 질문 | 주요 Evaluator | 끝나면 할 수 있는 것 |
+|---|---|---|---|---|
+| 00 | [00_Dataset_Preparation.ipynb](00_Dataset_Preparation.ipynb) | 운영 로그를 어떻게 평가 데이터로 바꾸나? | (데이터 파이프라인) | PII 제거 → 정제 → 분할 → Agent trace 변환까지 일괄 수행 |
+| 01 | [01_QA_Evaluator.ipynb](01_QA_Evaluator.ipynb) | 단일 턴 QA 답변이 좋은 답변인가? | `QAEvaluator`, `ResponseCompleteness`, `Similarity`, `Relevance`, `Coherence`, `Fluency`, `F1Score` | LLM Judge × token overlap 조합으로 응답 품질 입체 평가 |
+| 02 | [02_Retrieval_Evaluator.ipynb](02_Retrieval_Evaluator.ipynb) | 검색된 context가 query에 관련 있는가? | `RetrievalEvaluator` | RAG 실패 원인을 “검색 vs 생성”으로 분리 진단 |
+| 03 | [03_Groundedness_Evaluator.ipynb](03_Groundedness_Evaluator.ipynb) | 응답이 context에 근거하는가? (할루시네이션) | `GroundednessEvaluator` | 1~5 점수 + safe/partial/unsafe 등급으로 운영 모니터링 |
+| 04 | [04_Groundedness_Pro_Evaluator.ipynb](04_Groundedness_Pro_Evaluator.ipynb) | 운영급 할루시네이션 탐지를 어떻게? | `GroundednessProEvaluator` (Azure AI 서비스) | boolean + 사유로 fabrication / distortion / source error 식별 |
+| 05 | [05_Custom_Evaluator.ipynb](05_Custom_Evaluator.ipynb) | Built-in으로 못 잡는 도메인 규칙을 어떻게? | Code-based + Prompty-based custom evaluator | 은행 컴플라이언스 도메인 평가자 직접 구현 |
+| 06 | [06_agent_evaluation.ipynb](06_agent_evaluation.ipynb) | API로 배포된 에이전트를 어떻게 평가? | `IntentResolutionEvaluator`, `ResponseCompletenessEvaluator` | 의도 충족도 기반 운영 에이전트 평가 패턴 적용 |
+| 07 | [07_portal_sdk_evaluation.ipynb](07_portal_sdk_evaluation.ipynb) | 포털 평가와 SDK 평가를 어떻게 잇나? | `Relevance`, `Groundedness`, `Retrieval`, `ContentSafety`, `IndirectAttack`, `ProtectedMaterial`, `UngroundedAttributes`, custom grader | 포털 ↔ SDK 양방향 평가 자산 공유 + CI/CD 자동화 |
+| 08 | [08_Agent_Evaluation.ipynb](08_Agent_Evaluation.ipynb) | 에이전트의 결과 + 과정을 모두 평가하려면? | `IntentResolution`, `TaskAdherence`, `ToolCallAccuracy` + Quality 5종 | System(결과) × Process(도구 호출) 두 축으로 종합 평가 |
+
+### 🧭 학습 추천 경로
+
+| 목표 | 추천 순서 |
+|---|---|
+| 처음 입문 | 00 → 01 → 02 → 03 → 05 |
+| RAG 품질 디버깅 | 00 → 02 → 03 → 04 → (필요시 05) |
+| 운영 에이전트 평가 | 00 → 06 → 08 → 07 |
+| 컴플라이언스/안전성 검증 | 00 → 04 → 07 → 05 |
+
+> 💡 **모든 노트북에서 일관된 메시지**: **하나의 점수에 의존하지 말고, 서로 다른 질문을 던지는 evaluator들을 조합해서 본다.** 같은 “relevance”, “recall”이라는 단어도 단위(텍스트 vs chunk vs 의도)에 따라 의미가 달라지므로, 각 노트북 상단의 “비슷한 이름 헷갈리지 않기” 섹션을 꼭 확인하세요.
+
+---
+
+## 🎯 빠른 시작 평가기 세트 (이걸로 시작하세요)
+
+Azure AI Evaluation SDK는 평가기 종류가 많아 처음 보면 압도되기 쉽습니다. 아래 **3단계 Tier**로 시작하면 추가 학습 부담 없이 점진적으로 평가 범위를 넓힐 수 있습니다.
+
+### Tier 1 — 최소 시작 세트 (RAG / 단일 턴 챗봇)
+
+> 처음 도입한다면 이 4개로 충분합니다. 모두 GA이고, `model_config` 한 개만 있으면 동작합니다.
+
+| Evaluator | 무엇을 보나 | 입력 | 노트북 |
+|---|---|---|---|
+| `RelevanceEvaluator` | 답변이 질문에 맞는가? | query, response | 01, 07 |
+| `GroundednessEvaluator` | 답변이 context에 근거하는가? (할루시네이션) | response, context | 03, 07 |
+| `RetrievalEvaluator` | 검색된 context가 query에 관련 있는가? | query, context | 02, 07 |
+| `F1ScoreEvaluator` | 정답과 단어가 얼마나 겹치는가? (CI 회귀) | response, ground_truth | 01 |
+
+**언제 쓰나**: RAG 챗봇, FAQ 봇, 단일 턴 QA. **Relevance + Groundedness + Retrieval** 3개로 “질문↔답변↔근거” 삼각 디버깅이 됩니다. F1은 `model_config` 없이 도는 결정적 회귀 가드용.
+
+### Tier 2 — 운영 품질 추가 세트
+
+> 운영 모니터링/배포 게이트로 넘어갈 때 추가합니다. 일부는 Foundry 프로젝트(`azure_ai_project`)와 Azure AD 인증이 필요합니다.
+
+| Evaluator | 무엇을 보나 | 추가 요건 | 노트북 |
+|---|---|---|---|
+| `QAEvaluator` | groundedness/relevance/coherence/fluency + similarity + F1 묶음 | model_config | 01 |
+| `ResponseCompletenessEvaluator` | 정답 대비 핵심 정보 누락 여부 | model_config + ground_truth | 01, 06 |
+| `SimilarityEvaluator` | 정답과 의미가 비슷한가? | model_config + ground_truth | 01 |
+| `ContentSafetyEvaluator` | 폭력/성/혐오/자해 콘텐츠 | azure_ai_project + credential | 07 |
+| `IndirectAttackEvaluator` | 간접 prompt injection / jailbreak | azure_ai_project + credential | 07 |
+| `GroundednessProEvaluator` *(preview)* | 운영급 boolean + 사유 (fabrication / distortion …) | azure_ai_project + credential | 04, 07 |
+
+**언제 쓰나**: 배포 직전 안전성 검증, 회귀 비교용 Test/Holdout 점수 산출, 컴플라이언스 게이트.
+
+### Tier 3 — 에이전트(도구 호출) 평가 세트
+
+> Tool-calling Agent를 평가할 때 필요합니다. 데이터 입력 형식이 OpenAI 메시지 스키마(`query[]`, `response[]`, `tool_definitions[]`)이므로 일반 QA evaluator와 다릅니다.
+
+| Evaluator | 무엇을 보나 | 분류 | 노트북 |
+|---|---|---|---|
+| `IntentResolutionEvaluator` *(preview)* | 사용자 의도를 맞게 파악했나? | System | 06, 08 |
+| `TaskAdherenceEvaluator` *(preview)* | 시스템 지시/역할을 지켰나? | System | 08 |
+| `ToolCallAccuracyEvaluator` *(preview)* | 올바른 도구를 올바른 인자로 호출했나? | Process | 08 |
+
+**언제 쓰나**: API/Foundry Agent Service에 배포된 에이전트의 “결과(System) × 과정(Process)” 두 축 평가. 결과만 보면 잘못된 도구 호출을 놓치고, 과정만 보면 사용자 경험 문제를 놓칩니다.
+
+### 🚦 의사결정 한눈에 보기
+
+```
+        ┌── ground_truth 있음? ──┐
+        │                         │
+        ▼                         ▼
+  Tier 1 + ResponseCompleteness   Tier 1 (Retrieval/Groundedness/Relevance)
+  + F1 / Similarity                  ↓
+        │                       RAG OK?
+        ▼                         ▼
+  배포 직전 → Tier 2 (Safety + GroundednessPro)
+        │
+        ▼
+  Tool-calling Agent → Tier 3 (Intent / TaskAdherence / ToolCallAccuracy)
+```
+
+> ⚠️ **Preview 표시(`*(preview)*`)** 가 붙은 evaluator는 공개 미리 보기 상태이며, API/스키마가 변경될 수 있습니다. 운영 적용 전 [공식 문서](https://learn.microsoft.com/azure/ai-foundry/how-to/develop/evaluate-sdk)에서 최신 상태를 확인하세요.
+
+---
+
 ## 📁 프로젝트 구조
 
 ```
 Foundry Evaluation/
+├── 📓 00_Dataset_Preparation.ipynb    # 평가 데이터셋 준비 (운영 로그 → 평가 데이터)
 ├── 📓 01_QA_Evaluator.ipynb           # QA 평가자 (종합 품질)
 ├── 📓 02_Retrieval_Evaluator.ipynb    # 검색 품질 평가자
 ├── 📓 03_Groundedness_Evaluator.ipynb # 근거성 평가자 (LLM 기반)
 ├── 📓 04_Groundedness_Pro_Evaluator.ipynb # 근거성 Pro 평가자 (서비스 기반)
-├── 📓 05_Custom_Evaluator.ipynb       # 사용자 정의 평가자
+├── 📓 05_Custom_Evaluator.ipynb       # 사용자 정의 평가자 (도메인별 Code/Prompt)
+├── 📓 06_agent_evaluation.ipynb       # 에이전트 평가 (기본)
+├── 📓 07_portal_sdk_evaluation.ipynb  # 포털 SDK 평가
+├── 📓 08_Agent_Evaluation.ipynb       # Foundry Agent Service 에이전트 평가 (최신)
 ├── 📂 data/
-│   └── sample_qa.json                 # 샘플 Q&A 데이터셋
+│   ├── sample_qa.json                 # 샘플 Q&A 데이터셋
+│   ├── eval_input.jsonl               # 평가 입력 데이터 (JSONL)
+│   ├── sample_banking_qa.jsonl        # 은행 QA 데이터 (정답 여부 포함)
+│   └── agent_eval_traces.jsonl        # 에이전트 트레이스 데이터
 ├── 📂 prompt/
-│   └── response_quality.prompty       # 응답 품질 평가 프롬프트
+│   ├── response_quality.prompty       # 범용 응답 품질 평가 프롬프트
+│   └── banking_quality.prompty        # 은행 도메인 평가 프롬프트
 ├── requirements.txt                   # 필수 패키지
 └── README.md                          # 이 문서
 ```
@@ -383,11 +484,15 @@ model_config = {
 
 | 순서 | 노트북 | 설명 |
 |------|--------|------|
-| 1 | `01_QA_Evaluator.ipynb` | 종합 품질 평가 (기본) |
-| 2 | `02_Retrieval_Evaluator.ipynb` | 검색 품질 평가 |
-| 3 | `03_Groundedness_Evaluator.ipynb` | 근거성 평가 (LLM) |
-| 4 | `04_Groundedness_Pro_Evaluator.ipynb` | 근거성 평가 (서비스) |
-| 5 | `05_Custom_Evaluator.ipynb` | 사용자 정의 평가 |
+| 0 | `00_Dataset_Preparation.ipynb` | 운영 로그 → 평가 데이터셋 전처리 (은행 도메인) |
+| 1 | `01_QA_Evaluator.ipynb` | 단일 턴 QA 종합 품질 (QAEvaluator + 보조 evaluator) |
+| 2 | `02_Retrieval_Evaluator.ipynb` | 검색 품질 평가 (RAG의 “검색” 축) |
+| 3 | `03_Groundedness_Evaluator.ipynb` | 근거성 평가 — LLM Judge 1~5 점수 |
+| 4 | `04_Groundedness_Pro_Evaluator.ipynb` | 근거성 평가 — 서비스 기반 boolean + 사유 (preview) |
+| 5 | `05_Custom_Evaluator.ipynb` | Code-based / Prompty-based custom evaluator |
+| 6 | `06_agent_evaluation.ipynb` | API 기반 에이전트 평가 (IntentResolution + Completeness) |
+| 7 | `07_portal_sdk_evaluation.ipynb` | Foundry 포털 ↔ SDK 양방향 평가 통합 |
+| 8 | `08_Agent_Evaluation.ipynb` | Tool-calling 에이전트 종합 평가 (System × Process) |
 
 ---
 
@@ -405,15 +510,17 @@ model_config = {
 ※ 본 등급은 워크숍 실습용 가이드이며
 실제 배포 결정 기준을 대체하지 않음
 
-### 에이전트별 예상 결과
+### 은행 도메인 에이전트별 예상 결과
 
-| 에이전트 | 예상 Retrieval | 예상 Groundedness | 설명 |
-|----------|---------------|-------------------|------|
-| product-agent | 높음 (4-5) | 높음 (4-5) | 정상 RAG 응답 |
-| review-agent | 높음 (4-5) | 중간-높음 (3-5) | 요약 시 일부 누락 가능 |
-| policy-agent | 높음 (4-5) | 높음 (4-5) | 규정 기반 정확한 응답 |
-| hallucination-agent | 높음 (4-5) | 낮음 (1-2) | 컨텍스트와 불일치 |
-| rag-fail-agent | 낮음 (1-2) | N/A | 검색 자체 실패 |
+00 노트북에서 시뮬레이션되는 은행 상담 도메인(`loan` / `card` / `savings` / `account`) 기준 패턴입니다.
+
+| 케이스 | 예상 Retrieval | 예상 Groundedness | 설명 |
+|---|---|---|---|
+| `good` (정상 응답) | 높음 (4-5) | 높음 (4-5) | 약관/정책 문서 기반 정상 답변 |
+| `incomplete` (잘림) | 높음 (4-5) | 중간 (3-4) | 검색은 됐지만 답변이 중간에 잘림 |
+| `hallucination` | 높음 (4-5) | **낮음 (1-2)** | 검색은 됐지만 “수수료 0원/특별 지원금” 등 근거 없는 혜택 생성 |
+| `rag_fail` | **낮음 (1-2)** | N/A | 식당 메뉴/주차 규정 등 무관 문서 검색 — 검색 자체 실패 |
+| `정보 부족` 안전 응답 | 낮음~중간 | 높음 (4-5) | 근거가 없을 때 안전하게 보류한 응답 (Groundedness ↑) |
 
 ---
 
@@ -469,9 +576,11 @@ MIT License
 
 ---
 
-## 📋 Azure AI Evaluation SDK의 추가 Evaluator
+## 📋 Azure AI Evaluation SDK의 전체 Evaluator 카탈로그
 
-이 워크숍에서는 일부 Evaluator만 다루었습니다. Azure AI Evaluation SDK는 다양한 Built-in Evaluator를 제공하며, 전체 목록은 [공식 문서](https://learn.microsoft.com/python/api/azure-ai-evaluation/azure.ai.evaluation?view=azure-python)에서 확인할 수 있습니다.
+이 워크숍에서는 핵심 Evaluator를 다루지만, Azure AI Evaluation SDK는 그 외에도 많은 Built-in Evaluator를 제공합니다. 전체 목록과 최신 상태는 [공식 문서](https://learn.microsoft.com/python/api/azure-ai-evaluation/azure.ai.evaluation?view=azure-python)에서 확인하세요.
+
+> 💡 **Preview 주의**: 표 안에서 *(preview)* 로 표시한 항목은 공개 미리 보기 상태입니다. 출력 스키마/필드명/임계값 기본값이 SDK 버전에 따라 바뀔 수 있으니, 운영 자동화에 묶을 때는 버전 고정과 회귀 테스트를 권장합니다.
 
 ### 콘텐츠 품질 평가 Evaluators
 
@@ -491,6 +600,7 @@ MIT License
 | **GroundednessEvaluator** | LLM 기반으로 응답의 컨텍스트 근거성 평가 | 1-5 | ✅ (03 포함) |
 | **GroundednessProEvaluator** | 서비스 기반 고급 근거성 평가 (비용 효율적) | Boolean | ✅ (04 포함) |
 | **RetrievalEvaluator** | RAG 시스템의 검색 품질 평가 | 1-5 | ✅ (02 포함) |
+| **DocumentRetrievalEvaluator** | 문서 수준 검색 품질 평가 (ground_truth 필요) | 1-5 | ❌ |
 
 ### 텍스트 유사도 메트릭 Evaluators
 
@@ -521,18 +631,25 @@ MIT License
 | **CodeVulnerabilityEvaluator** | 코드 취약점 탐지 - SQL 인젝션, XSS 등 | Boolean | ❌ |
 | **UngroundedAttributesEvaluator** | 근거 없는 인적 속성 추론 탐지 | Boolean | ❌ |
 
-### AI 작업 품질 평가 Evaluators (실험적 기능)
+### 에이전트 평가 Evaluators
 
 | Evaluator | 설명 | 점수 범위 | 워크숍 포함 여부 |
 |-----------|------|-----------|------------------|
-| **TaskAdherenceEvaluator** | AI 어시스턴트의 작업 준수도 평가 (목표/규칙/절차) | Boolean | ❌ |
-| **ToolCallAccuracyEvaluator** | 도구 호출의 정확성 평가 (관련성, 매개변수 정확성) | 1-5 | ❌ |
+| **TaskCompletionEvaluator** (preview) | 에이전트가 요청된 작업을 완전히 완료했는지 평가 | Boolean | ✅ (08 포함) |
+| **TaskAdherenceEvaluator** (preview) | 시스템 지시사항 준수 여부 평가 (목표/규칙/절차) | Boolean | ✅ (08 포함) |
+| **TaskNavigationEfficiencyEvaluator** | 최적 경로로 작업을 수행했는지 평가 (ground_truth 필요) | Boolean | ✅ (08 포함) |
+| **IntentResolutionEvaluator** (preview) | 사용자 의도를 올바르게 파악했는지 평가 | 1-5 → Pass/Fail | ✅ (08 포함) |
+| **ToolCallAccuracyEvaluator** | 올바른 도구를 정확한 매개변수로 호출했는지 평가 | 1-5 → Pass/Fail | ✅ (08 포함) |
+| **ToolSelectionEvaluator** | 불필요한 도구 없이 올바른 도구를 선택했는지 평가 | Boolean | ✅ (08 포함) |
+| **ToolInputAccuracyEvaluator** | 도구 호출 매개변수의 정확성 평가 (6가지 기준) | Boolean | ✅ (08 포함) |
+| **ToolOutputUtilizationEvaluator** | 도구 결과를 응답에 올바르게 활용했는지 평가 | Boolean | ✅ (08 포함) |
+| **ToolCallSuccessEvaluator** | 도구 호출이 기술적 오류 없이 성공했는지 평가 | Boolean | ✅ (08 포함) |
 
 ### 종합 평가 Evaluators
 
 | Evaluator | 설명 | 점수 범위 | 워크숍 포함 여부 |
 |-----------|------|-----------|------------------|
-| **QAEvaluator** | 다중 메트릭 종합 평가 (Groundedness, Relevance, Coherence, Fluency) | 복합 | ✅ (01 포함) |
+| **QAEvaluator** | 다중 메트릭 종합 평가 (Groundedness, Relevance, Coherence, Fluency, Similarity, F1Score) | 복합 | ✅ (01 포함) |
 
 ### 고급 Grader 클래스 (실험적 기능)
 
@@ -558,7 +675,9 @@ MIT License
 | **콘텐츠 안전성 검증** | ContentSafetyEvaluator, HateUnfairnessEvaluator, ViolenceEvaluator |
 | **할루시네이션 탐지** | GroundednessEvaluator, GroundednessProEvaluator |
 | **보안 위협 탐지** | IndirectAttackEvaluator, CodeVulnerabilityEvaluator |
-| **AI 에이전트 평가** | TaskAdherenceEvaluator, ToolCallAccuracyEvaluator |
+| **AI 에이전트 평가 (시스템)** | TaskCompletionEvaluator, TaskAdherenceEvaluator, IntentResolutionEvaluator |
+| **AI 에이전트 평가 (프로세스)** | ToolCallAccuracyEvaluator, ToolSelectionEvaluator, ToolInputAccuracyEvaluator |
+| **AI 에이전트 도구 신뢰성** | ToolCallSuccessEvaluator, ToolOutputUtilizationEvaluator |
 
 ---
 

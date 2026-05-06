@@ -1,1 +1,4 @@
 .env
+data/raw_chat_logs.jsonl
+data/eval_test.jsonl
+data/eval_holdout.jsonl
