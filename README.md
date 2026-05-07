@@ -68,63 +68,13 @@ Azure AI Foundry의 Evaluation SDK를 활용하여 LLM 기반 애플리케이션
 
 Azure AI Evaluation SDK는 평가기 종류가 많아 처음 보면 압도되기 쉽습니다. 아래 **3단계 Tier**로 시작하면 추가 학습 부담 없이 점진적으로 평가 범위를 넓힐 수 있습니다.
 
-### Tier 1 — 최소 시작 세트 (RAG / 단일 턴 챗봇)
-
-> 처음 도입한다면 이 4개로 충분합니다. 모두 GA이고, `model_config` 한 개만 있으면 동작합니다.
-
-| Evaluator | 무엇을 보나 | 입력 | 노트북 |
+| Evaluator | 무엇을 보나 |
 |---|---|---|---|
-| `RelevanceEvaluator` | 답변이 질문에 맞는가? | query, response | 01, 07 |
-| `GroundednessEvaluator` | 답변이 context에 근거하는가? (할루시네이션) | response, context | 03, 07 |
-| `RetrievalEvaluator` | 검색된 context가 query에 관련 있는가? | query, context | 02, 07 |
-| `F1ScoreEvaluator` | 정답과 단어가 얼마나 겹치는가? (CI 회귀) | response, ground_truth | 01 |
-
-**언제 쓰나**: RAG 챗봇, FAQ 봇, 단일 턴 QA. **Relevance + Groundedness + Retrieval** 3개로 “질문↔답변↔근거” 삼각 디버깅이 됩니다. F1은 `model_config` 없이 도는 결정적 회귀 가드용.
-
-### Tier 2 — 운영 품질 추가 세트
-
-> 운영 모니터링/배포 게이트로 넘어갈 때 추가합니다. 일부는 Foundry 프로젝트(`azure_ai_project`)와 Azure AD 인증이 필요합니다.
-
-| Evaluator | 무엇을 보나 | 추가 요건 | 노트북 |
-|---|---|---|---|
-| `QAEvaluator` | groundedness/relevance/coherence/fluency + similarity + F1 묶음 | model_config | 01 |
-| `ResponseCompletenessEvaluator` | 정답 대비 핵심 정보 누락 여부 | model_config + ground_truth | 01, 06 |
-| `SimilarityEvaluator` | 정답과 의미가 비슷한가? | model_config + ground_truth | 01 |
-| `ContentSafetyEvaluator` | 폭력/성/혐오/자해 콘텐츠 | azure_ai_project + credential | 07 |
-| `IndirectAttackEvaluator` | 간접 prompt injection / jailbreak | azure_ai_project + credential | 07 |
-| `GroundednessProEvaluator` *(preview)* | 운영급 boolean + 사유 (fabrication / distortion …) | azure_ai_project + credential | 04, 07 |
-
-**언제 쓰나**: 배포 직전 안전성 검증, 회귀 비교용 Test/Holdout 점수 산출, 컴플라이언스 게이트.
-
-### Tier 3 — 에이전트(도구 호출) 평가 세트
-
-> Tool-calling Agent를 평가할 때 필요합니다. 데이터 입력 형식이 OpenAI 메시지 스키마(`query[]`, `response[]`, `tool_definitions[]`)이므로 일반 QA evaluator와 다릅니다.
-
-| Evaluator | 무엇을 보나 | 분류 | 노트북 |
-|---|---|---|---|
-| `IntentResolutionEvaluator` *(preview)* | 사용자 의도를 맞게 파악했나? | System | 06, 08 |
-| `TaskAdherenceEvaluator` *(preview)* | 시스템 지시/역할을 지켰나? | System | 08 |
-| `ToolCallAccuracyEvaluator` *(preview)* | 올바른 도구를 올바른 인자로 호출했나? | Process | 08 |
-
-**언제 쓰나**: API/Foundry Agent Service에 배포된 에이전트의 “결과(System) × 과정(Process)” 두 축 평가. 결과만 보면 잘못된 도구 호출을 놓치고, 과정만 보면 사용자 경험 문제를 놓칩니다.
-
-### 🚦 의사결정 한눈에 보기
-
-```
-        ┌── ground_truth 있음? ──┐
-        │                         │
-        ▼                         ▼
-  Tier 1 + ResponseCompleteness   Tier 1 (Retrieval/Groundedness/Relevance)
-  + F1 / Similarity                  ↓
-        │                       RAG OK?
-        ▼                         ▼
-  배포 직전 → Tier 2 (Safety + GroundednessPro)
-        │
-        ▼
-  Tool-calling Agent → Tier 3 (Intent / TaskAdherence / ToolCallAccuracy)
-```
-
-> ⚠️ **Preview 표시(`*(preview)*`)** 가 붙은 evaluator는 공개 미리 보기 상태이며, API/스키마가 변경될 수 있습니다. 운영 적용 전 [공식 문서](https://learn.microsoft.com/azure/ai-foundry/how-to/develop/evaluate-sdk)에서 최신 상태를 확인하세요.
+| `Groundedness` | 답변이 검색된 지식자원에만 기반하는가? |
+| `Relevance` | 질문의 의도에 부합하는가? |
+| `Similarity` | 정답(Ground Truth)과 문장/의미상 얼마나 유사한가? |
+| `Coherence` | 답변 전체의 논리적 연결이 자연스러운가? |
+| `Fluency` | 문장이 문법적으로 매끄러운가? |
 
 ---
 
