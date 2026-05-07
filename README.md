@@ -69,7 +69,7 @@ Azure AI Foundry의 Evaluation SDK를 활용하여 LLM 기반 애플리케이션
 Azure AI Evaluation SDK는 평가기 종류가 많아 처음 보면 압도되기 쉽습니다. 아래 **3단계 Tier**로 시작하면 추가 학습 부담 없이 점진적으로 평가 범위를 넓힐 수 있습니다.
 
 | Evaluator | 무엇을 보나 |
-|---|---|---|---|
+|---|---|
 | `Groundedness` | 답변이 검색된 지식자원에만 기반하는가? |
 | `Relevance` | 질문의 의도에 부합하는가? |
 | `Similarity` | 정답(Ground Truth)과 문장/의미상 얼마나 유사한가? |
